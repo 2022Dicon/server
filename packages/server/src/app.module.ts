@@ -1,14 +1,22 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { HelloModule } from './hello/hello.module';
+import { DatabaseModule } from './database.module';
+import { InterviewModule } from './interview/interview.module';
+import { RequestModule } from './request/request.module';
+import { ProfileModule } from './profile/profile.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [`../../../.env`, `.env`],
+      envFilePath: [`../../.env`, `.env`],
     }),
-    HelloModule,
+    DatabaseModule,
+    InterviewModule,
+    RequestModule,
+    ProfileModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [],
