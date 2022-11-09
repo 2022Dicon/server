@@ -1,3 +1,4 @@
+import { Comment } from 'src/interview/comment.entity';
 import { Interview } from 'src/interview/interview.entity';
 import Request from 'src/request/request.entity';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
@@ -16,11 +17,18 @@ export class User {
   @Column('uuid')
   image!: string;
 
-  // ToDo
+  @Column('varchar', { length: 255 })
+  job!: string;
+
+  @Column('text')
+  description!: string;
 
   @OneToMany(() => Interview, (interview) => interview.user)
   interviews!: Interview[];
 
   @OneToMany(() => Request, (request) => request.user)
   requests!: Request[];
+
+  @OneToMany(() => Comment, (comment) => comment.user)
+  comments!: Comment[];
 }

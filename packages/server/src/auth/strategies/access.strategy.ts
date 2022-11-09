@@ -25,9 +25,7 @@ export class AccessStrategy extends PassportStrategy(Strategy, 'access') {
   }
 
   async validate(payload: Payload) {
-    console.log(payload);
     const user = await this.user.findOneBy({ id: payload.id });
-    console.log(user)
     return user;
   }
 }

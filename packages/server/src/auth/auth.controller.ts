@@ -17,6 +17,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { User } from 'src/profile/user.entity';
 import { Repository } from 'typeorm';
 import { AccessGuard } from './guards/access.guard';
+import { LocalGuard } from './guards/local.guard';
 
 class LoginPayload {
   @ApiProperty({
@@ -63,6 +64,7 @@ export class AuthController {
   }
 
   @Get('/dev')
+  @UseGuards(LocalGuard)
   async dev() {
     let user = await this.user.findOneBy({ email: 'dev@example.com' });
     if (!user) {

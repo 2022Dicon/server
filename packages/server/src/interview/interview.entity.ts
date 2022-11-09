@@ -19,13 +19,11 @@ export class Interview {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column('uuid')
-  thumbnail!: string;
-
-  // ToDo: add user column
-
   @Column('varchar', { length: 255 })
   title!: string;
+
+  @Column('uuid')
+  thumbnail!: string;
 
   @Column('int')
   amount!: number;
