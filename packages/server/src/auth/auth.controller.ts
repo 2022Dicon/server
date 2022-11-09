@@ -71,7 +71,6 @@ export class AuthController {
       user = this.user.create({
         email: 'dev@example.com',
         name: 'dev',
-        image: '',
       });
       this.user.save(user);
     }

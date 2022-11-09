@@ -14,13 +14,13 @@ export class User {
   @Column('varchar', { length: 255 })
   name!: string;
 
-  @Column('uuid')
+  @Column('uuid', { default: '4ed96cc1-9b23-47e8-acdc-7f6f8ded05be' })
   image!: string;
 
-  @Column('varchar', { length: 255 })
+  @Column('varchar', { length: 255, nullable: true })
   job!: string;
 
-  @Column('text')
+  @Column('text', { nullable: true })
   description!: string;
 
   @OneToMany(() => Interview, (interview) => interview.user)

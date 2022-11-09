@@ -1,4 +1,4 @@
-import { InterviewCategory } from 'src/interview/interview.entity';
+import { Interview, InterviewCategory } from 'src/interview/interview.entity';
 import { User } from 'src/profile/user.entity';
 import {
   AfterLoad,
@@ -11,33 +11,39 @@ import {
 } from 'typeorm';
 import Question from './question.entity';
 
+export enum RequestCategory {
+  Online = 'online',
+  Offline = 'offline',
+}
+
 @Entity()
 export default class Request {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column('uuid')
-  thumbnail!: string;
-
   @Column('varchar', { length: 255 })
   title!: string;
 
+  @Column('uuid', { default: '' })
+  thumbnail!: string;
+
   @Column({
     type: 'enum',
-    enum: InterviewCategory,
+    enum: RequestCategory,
+    default: RequestCategory.Online,
   })
   category!: string;
 
-  @Column('date')
+  @Column('datetime', { nullable: true })
   date!: Date;
 
-  @Column('text')
+  @Column('text', { nullable: true })
   location!: string;
 
-  @Column('bool')
+  @Column('bool', { default: false })
   completed!: boolean;
 
-  @DeleteDateColumn()
+  @DeleteDateColumn({ select: false })
   deletedAt!: Date;
 
   @OneToMany(() => Question, (question) => question.request, {
@@ -45,6 +51,9 @@ export default class Request {
     eager: true,
   })
   questions!: Question[];
+
+  @ManyToOne(() => Interview, (interview) => interview.requests)
+  interview!: Interview;
 
   @ManyToOne(() => User, (user) => user.requests)
   user!: User;

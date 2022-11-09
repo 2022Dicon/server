@@ -1,4 +1,5 @@
 import { User } from 'src/profile/user.entity';
+import Request from 'src/request/request.entity';
 import {
   Column,
   Entity,
@@ -12,6 +13,7 @@ import { Comment } from './comment.entity';
 export enum InterviewCategory {
   Online = 'online',
   Offline = 'offline',
+  Any = 'any',
 }
 
 @Entity()
@@ -51,4 +53,10 @@ export class Interview {
   })
   @JoinColumn()
   comments!: Comment[];
+
+  @OneToMany(() => Request, (request) => request.interview, {
+    cascade: true,
+  })
+  @JoinColumn()
+  requests!: Request[];
 }

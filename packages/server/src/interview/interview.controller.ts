@@ -3,6 +3,7 @@ import {
   Body,
   Delete,
   Get,
+  Param,
   Post,
   Query,
   Req,
@@ -145,7 +146,7 @@ export class InterviewController {
   @ApiBearerAuth()
   @UseGuards(AccessGuard)
   async deleteInterview(
-    @Query('id') id: string,
+    @Param('id') id: string,
     @Req() req: Request,
   ): Promise<boolean> {
     const interview = await this.interview.findOneBy({ id });
@@ -164,7 +165,7 @@ export class InterviewController {
   @ApiBody({ type: CommentPayload })
   @UseGuards(AccessGuard)
   async postComment(
-    @Query('id') id: string,
+    @Param('id') id: string,
     @Body('score') score: number,
     @Body('content') content: string,
     @Req() req: Request,
@@ -189,8 +190,8 @@ export class InterviewController {
   @ApiBearerAuth()
   @UseGuards(AccessGuard)
   async deleteComment(
-    @Query('id') id: string,
-    @Query('commentId') commentId: string,
+    @Param('id') id: string,
+    @Param('commentId') commentId: string,
     @Req() req: Request,
   ): Promise<boolean> {
     console.log(req.user);
