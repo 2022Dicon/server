@@ -1,7 +1,9 @@
+import { User } from 'src/profile/user.entity';
 import {
   Column,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -40,6 +42,10 @@ export class Interview {
 
   @Column('longtext')
   description!: string;
+
+  @ManyToOne(() => User, (user) => user.interviews)
+  @JoinColumn()
+  user!: User;
 
   @OneToMany(() => Comment, (comment) => comment.interview, {
     cascade: true,

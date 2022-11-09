@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { ApiBody, ApiProperty } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiProperty } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Response } from 'express';
 import { OAuth2Client } from 'google-auth-library';
@@ -56,9 +56,31 @@ export class AuthController {
   ) {}
 
   @Get('/')
+  @ApiBearerAuth()
   @UseGuards(AccessGuard)
   async auth() {
     return 'Hello World!';
+  }
+
+  @Get('/dev')
+  async dev() {
+    let user = await this.user.findOneBy({ email: 'dev@example.com' });
+    if (!user) {
+      user = this.user.create({
+        email: 'dev@example.com',
+        name: 'dev',
+        image: '',
+      });
+      this.user.save(user);
+    }
+    const token = await this.jwtService.signAsync(
+      { id: user.id },
+      {
+        secret: this.config.get('JWT_SECRET'),
+        expiresIn: this.config.get('JWT_EXPIRES_IN'),
+      },
+    );
+    return token;
   }
 
   @Post('/login')
