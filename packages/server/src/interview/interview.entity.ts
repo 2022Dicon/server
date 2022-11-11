@@ -44,13 +44,8 @@ export class Interview {
   description!: string;
 
   @ManyToOne(() => User, (user) => user.interviews, {
-<<<<<<< HEAD
-    eager : true
-  }) 
-=======
     eager: true,
   })
->>>>>>> 14f19b4a9aa6948003f51af45200cf2448d5240a
   @JoinColumn()
   user!: User;
 

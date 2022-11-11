@@ -55,6 +55,8 @@ export default class Request {
   @ManyToOne(() => Interview, (interview) => interview.requests)
   interview!: Interview;
 
-  @ManyToOne(() => User, (user) => user.requests)
+  @ManyToOne(() => User, (user) => user.requests, {
+    eager: true,
+  })
   user!: User;
 }
