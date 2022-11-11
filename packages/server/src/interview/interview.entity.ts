@@ -43,7 +43,9 @@ export class Interview {
   @Column('longtext')
   description!: string;
 
-  @ManyToOne(() => User, (user) => user.interviews)
+  @ManyToOne(() => User, (user) => user.interviews, {
+    eager: true,
+  })
   @JoinColumn()
   user!: User;
 
