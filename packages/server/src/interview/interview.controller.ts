@@ -84,6 +84,12 @@ export class InterviewController {
     private readonly user: Repository<User>,
   ) {}
 
+  @Get('/all')
+  async getInterviewAll(): Promise<Interview[]>{
+    const interviews = await this.interview.find();
+    return interviews ?? [];
+  }
+
   @Get('/')
   @ApiBearerAuth()
   @UseGuards(AccessGuard)
@@ -103,6 +109,7 @@ export class InterviewController {
     @Query('amountTo') amountTo?: number,
     @Query('title') title?: string,
   ): Promise<Interview[]> {
+    // find interview include user
     const interviews = await this.interview.find({
       loadEagerRelations: false,
       where: {
@@ -114,7 +121,9 @@ export class InterviewController {
       },
       skip: (page - 1) * limit,
       take: limit,
+      relations: ['user'],
     });
+
     return interviews ?? [];
   }
 

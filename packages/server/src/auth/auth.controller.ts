@@ -108,7 +108,7 @@ export class AuthController {
         expiresIn: this.config.get('JWT_EXPIRES_IN'),
       },
     );
-    return accessToken;
+    return {accessToken};
   }
 
   @Post('/regist')
@@ -137,6 +137,6 @@ export class AuthController {
         expiresIn: this.config.get('JWT_EXPIRES_IN'),
       },
     );
-    return accessToken;
+    return {accessToken};
   }
 }

@@ -23,7 +23,9 @@ export class Comment {
   @JoinColumn()
   interview!: Interview;
 
-  @ManyToOne(() => User, (user) => user.comments)
+  @ManyToOne(() => User, (user) => user.comments, {
+    eager : true
+  })
   @JoinColumn()
   user!: User;
 }
