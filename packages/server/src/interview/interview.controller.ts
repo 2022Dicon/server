@@ -130,7 +130,7 @@ export class InterviewController {
   @Get('/:id')
   @ApiBearerAuth()
   @UseGuards(AccessGuard)
-  async getInterview(@Query('id') id: string): Promise<Interview> {
+  async getInterview(@Param('id') id: string): Promise<Interview> {
     const interview = await this.interview.findOneBy({ id });
     if (!interview) {
       throw new HttpException('Not found', HttpStatus.NOT_FOUND);
