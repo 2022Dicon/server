@@ -20,9 +20,11 @@ import { DateTime } from 'luxon';
 import { AccessGuard } from 'src/auth/guards/access.guard';
 import { Interview, InterviewCategory } from 'src/interview/interview.entity';
 import { User } from 'src/profile/user.entity';
-import { Repository } from 'typeorm';
+import { Repository, UpdateResult } from 'typeorm';
 import Question from './question.entity';
-import Request from './request.entity';
+import Record from './record.entity';
+import Request, { RequestStatus } from './request.entity';
+import { RequestService, ValidationRole } from './request.service';
 
 export class RequestPayload {
   @ApiProperty({
@@ -75,7 +77,23 @@ export class RequestController {
     private readonly question: Repository<Question>,
     @InjectRepository(User)
     private readonly user: Repository<User>,
+    @InjectRepository(Record)
+    private readonly record: Repository<Record>,
+    private readonly service: RequestService,
   ) {}
+
+  @Get(['/', '/me'])
+  @ApiBearerAuth()
+  @UseGuards(AccessGuard)
+  async getMyRequests(@Req() req: ExpressRequest): Promise<Request[]> {
+    const interview = await this.interview.findOne({
+      where: { user: req.user },
+      relations: ['requests'],
+    });
+    const requests = interview?.requests ?? [];
+
+    return requests;
+  }
 
   @Get('/:int_id')
   @ApiBearerAuth()
@@ -171,7 +189,82 @@ export class RequestController {
     return true;
   }
 
-  // Question
+  @Put('/:int_id/:id')
+  @ApiBearerAuth()
+  @ApiBody({ type: RequestPayload })
+  @UseGuards(AccessGuard)
+  async updateRequest(
+    @Param('int_id') int_id: string,
+    @Param('id') id: string,
+    @Body() payload: RequestPayload,
+    @Req() req: ExpressRequest,
+  ) {
+    let request = await this.request.findOne({
+      where: { id, interview: { id: int_id } },
+      relations: ['interview', 'interview.user'],
+    });
+
+    if (!request) {
+      throw new HttpException('Not found', HttpStatus.NOT_FOUND);
+    }
+
+    if (request.user.id === req.user?.id) {
+      request = this.request.merge(request, {
+        title: payload.title,
+        thumbnail: payload.thumbnail,
+        category: payload.category,
+        date: payload.date,
+        location: payload.location,
+      });
+    } else if (request.interview.user.id === req.user?.id) {
+      request = this.request.merge(request, {
+        date: payload.date,
+        location: payload.location,
+      });
+    } else {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
+
+    await this.request.save(request);
+  }
+
+  @Put('/:int_id/:id')
+  @ApiBearerAuth()
+  @ApiBody({ type: RequestPayload })
+  @UseGuards(AccessGuard)
+  async uploadRecord(
+    @Param('int_id') int_id: string,
+    @Param('id') id: string,
+    @Body() payload: RequestPayload,
+    @Req() req: ExpressRequest,
+  ) {
+    const request = await this.request.findOne({
+      where: { id, interview: { id: int_id } },
+      relations: ['interview', 'interview.user'],
+    });
+
+    if (!request) {
+      throw new HttpException('Not found', HttpStatus.NOT_FOUND);
+    }
+
+    if (
+      !(await this.service.validateUserPermissionWithRequest(
+        req,
+        ValidationRole.RequestOrInterview,
+        request,
+      ))
+    ) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
+
+    // ToDo: upload record
+    const record = await this.record.save(this.record.create({}));
+    request.records.push(record);
+
+    await this.request.save(request);
+  }
+
+  //#region Question
 
   @Get('/:int_id/:id/question')
   @ApiBearerAuth()
@@ -253,7 +346,81 @@ export class RequestController {
     return true;
   }
 
-  // complete
+  //#endregion
+
+  //#region ChangeStatus
+
+  @Put('/:int_id/:id/approve')
+  @ApiBearerAuth()
+  @UseGuards(AccessGuard)
+  async approveRequest(
+    @Param('int_id') int_id: string,
+    @Param('id') id: string,
+    @Req() req: ExpressRequest,
+  ): Promise<UpdateResult> {
+    const request = await this.request.findOne({
+      where: {
+        id,
+        interview: { id: int_id },
+      },
+      relations: ['interview', 'interview.user'],
+    });
+
+    if (!request) {
+      throw new HttpException('Not found', HttpStatus.NOT_FOUND);
+    }
+
+    const validation = this.service.validateUserPermissionWithRequest(
+      req,
+      ValidationRole.Interview,
+      request,
+    );
+
+    if (!validation) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
+    this.service.filterStatus(request.status, [RequestStatus.Pending]);
+
+    return await this.request.update(id, {
+      status: RequestStatus.Approved,
+    });
+  }
+
+  @Put('/:int_id/:id/reject')
+  @ApiBearerAuth()
+  @UseGuards(AccessGuard)
+  async rejectRequest(
+    @Param('int_id') int_id: string,
+    @Param('id') id: string,
+    @Req() req: ExpressRequest,
+  ): Promise<UpdateResult> {
+    const request = await this.request.findOne({
+      where: {
+        id,
+        interview: { id: int_id },
+      },
+      relations: ['interview', 'interview.user'],
+    });
+
+    if (!request) {
+      throw new HttpException('Not found', HttpStatus.NOT_FOUND);
+    }
+
+    const validation = this.service.validateUserPermissionWithRequest(
+      req,
+      ValidationRole.Interview,
+      request,
+    );
+
+    if (!validation) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
+    this.service.filterStatus(request.status, [RequestStatus.Pending]);
+
+    return await this.request.update(id, {
+      status: RequestStatus.Rejected,
+    });
+  }
 
   @Put('/:int_id/:id/complete')
   @ApiBearerAuth()
@@ -263,25 +430,78 @@ export class RequestController {
     @Param('id') id: string,
     @Req() req: ExpressRequest,
   ): Promise<boolean> {
-    const request = await this.request.findOneBy({
-      id,
-      interview: { id: int_id },
+    const request = await this.request.findOne({
+      where: {
+        id,
+        interview: { id: int_id },
+      },
+      relations: ['user', 'interview', 'interview.user'],
     });
 
     if (!request) {
       throw new HttpException('Not found', HttpStatus.NOT_FOUND);
     }
-    if (request.user.id !== req.user?.id) {
+
+    const validation = this.service.validateUserPermissionWithRequest(
+      req,
+      ValidationRole.Interview,
+      request,
+    );
+
+    if (!validation) {
       throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
     }
-    if (request.completed) {
-      throw new HttpException('Already completed', HttpStatus.BAD_REQUEST);
-    }
+    this.service.filterStatus(request.status, [RequestStatus.Approved]);
 
     await this.request.update(id, {
-      completed: true,
+      status: RequestStatus.Completed,
     });
 
     return true;
   }
+
+  @Put('/:int_id/:id/:status')
+  @ApiBearerAuth()
+  @UseGuards(AccessGuard)
+  async changeRequestStatus(
+    @Param('int_id') int_id: string,
+    @Param('id') id: string,
+    @Param('status') status: RequestStatus,
+    @Req() req: ExpressRequest,
+  ): Promise<UpdateResult> {
+    if (status === RequestStatus.Pending) {
+      throw new HttpException('Bad Request', HttpStatus.BAD_REQUEST);
+    }
+
+    const request = await this.request.findOne({
+      where: {
+        id,
+        interview: { id: int_id },
+      },
+      relations: ['interview', 'interview.user'],
+    });
+
+    if (!request) {
+      throw new HttpException('Not found', HttpStatus.NOT_FOUND);
+    }
+
+    const validation = this.service.validateUserPermissionWithRequest(
+      req,
+      ValidationRole.Interview,
+      request,
+    );
+
+    if (!validation) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
+    if (status === RequestStatus.Completed)
+      this.service.filterStatus(request.status, [RequestStatus.Approved]);
+    else this.service.filterStatus(request.status, [RequestStatus.Pending]);
+
+    return await this.request.update(id, {
+      status,
+    });
+  }
+
+  //#endregion
 }

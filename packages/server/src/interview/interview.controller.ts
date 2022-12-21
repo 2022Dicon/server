@@ -5,11 +5,18 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
 } from '@nestjs/common/decorators';
-import { ApiBearerAuth, ApiBody, ApiProperty, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiProperty,
+  ApiQuery,
+  PartialType,
+} from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Request } from 'express';
 import { AccessGuard } from 'src/auth/guards/access.guard';
@@ -85,7 +92,7 @@ export class InterviewController {
   ) {}
 
   @Get('/all')
-  async getInterviewAll(): Promise<Interview[]>{
+  async getInterviewAll(): Promise<Interview[]> {
     const interviews = await this.interview.find();
     return interviews ?? [];
   }
@@ -151,6 +158,31 @@ export class InterviewController {
     return interview;
   }
 
+  @Put('/:id')
+  @ApiBearerAuth()
+  @ApiBody({ type: PartialType(InterviewPayload) })
+  @UseGuards(AccessGuard)
+  async updateInterview(
+    @Param('id') id: string,
+    @Body() payload: Partial<InterviewPayload>,
+    @Req() req: Request,
+  ): Promise<Interview> {
+    if (!id) {
+      throw new HttpException('Bad request', HttpStatus.BAD_REQUEST);
+    }
+    const interview = await this.interview.findOneBy({ id });
+    if (!interview) {
+      throw new HttpException('Not found', HttpStatus.NOT_FOUND);
+    }
+    if (interview.user.id !== req.user?.id) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
+
+    const updated = this.interview.merge(interview, payload);
+    await this.interview.save(updated);
+    return updated;
+  }
+
   @Delete('/:id')
   @ApiBearerAuth()
   @UseGuards(AccessGuard)
@@ -167,6 +199,23 @@ export class InterviewController {
     }
     await this.interview.delete(interview);
     return true;
+  }
+
+  @Get('/:id/requests')
+  @ApiBearerAuth()
+  @UseGuards(AccessGuard)
+  async getRequests(@Param('int_id') id: string) {
+    const interview = await this.interview.findOne({
+      where: { id },
+      relations: ['requests'],
+    });
+    const requests = interview?.requests;
+
+    if (!requests) {
+      throw new HttpException('Not found', HttpStatus.NOT_FOUND);
+    }
+
+    return requests;
   }
 
   @Post('/:id/comment')

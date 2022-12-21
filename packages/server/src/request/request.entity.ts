@@ -10,10 +10,18 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import Question from './question.entity';
+import Record from './record.entity';
 
 export enum RequestCategory {
   Online = 'online',
   Offline = 'offline',
+}
+
+export enum RequestStatus {
+  Pending = 'pending',
+  Approved = 'approved',
+  Rejected = 'rejected',
+  Completed = 'completed',
 }
 
 @Entity()
@@ -40,8 +48,12 @@ export default class Request {
   @Column('text', { nullable: true })
   location!: string;
 
-  @Column('bool', { default: false })
-  completed!: boolean;
+  @Column({
+    type: 'enum',
+    enum: RequestStatus,
+    default: RequestStatus.Pending,
+  })
+  status!: string;
 
   @DeleteDateColumn({ select: false })
   deletedAt!: Date;
@@ -51,6 +63,12 @@ export default class Request {
     eager: true,
   })
   questions!: Question[];
+
+  @OneToMany(() => Record, (record) => record.request, {
+    cascade: true,
+    eager: true,
+  })
+  records!: Record[];
 
   @ManyToOne(() => Interview, (interview) => interview.requests)
   interview!: Interview;
